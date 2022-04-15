@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "42767781804",
+    "project_id": "pro-soccer-c0acd",
+    "storage_bucket": "pro-soccer-c0acd.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:42767781804:android:6edaa62818752f5f73b409",
+        "android_client_info": {
+          "package_name": "com.feedback.pro_feedback_soccer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "42767781804-ucvv5mqou1odupqmre40lall2h8lj25r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMZQ1_ZiG7KLR_fnVs3NcIk487DgnY0L0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "42767781804-ucvv5mqou1odupqmre40lall2h8lj25r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
