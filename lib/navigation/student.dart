@@ -42,7 +42,7 @@ class _BottomNavigationState extends State<StudentBar>{
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       bottomNavigationBar: CurvedNavigationBar(
         height: 50,
         backgroundColor: Colors.white,

@@ -1,7 +1,9 @@
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pro_feedback_soccer/dialog/add_package.dart';
+import 'package:pro_feedback_soccer/model/subscription_model.dart';
 import 'package:pro_feedback_soccer/utils/constants.dart';
 class Subscriptions extends StatefulWidget {
   @override
@@ -23,7 +25,7 @@ class _SubscriptionsState extends State<Subscriptions> {
         child: Icon(Icons.add),
       ),
       body: SafeArea(
-        child: ListView(
+        child: Column(
           children: [
             Container(
               decoration: BoxDecoration(
@@ -45,91 +47,85 @@ class _SubscriptionsState extends State<Subscriptions> {
             Container(
             margin: EdgeInsets.all(5)
           ),
-            Container(
-              child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: InkWell(
-                          child: Container(
-                            margin: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: primaryColor),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('subscription')
+                    .where("teacherId",isEqualTo: FirebaseAuth.instance.currentUser!.uid).snapshots(),
+                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasError) {
+                    return Text('Something went wrong');
+                  }
 
-                                borderRadius: BorderRadius.circular(10)
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  margin: EdgeInsets.only(left: 10,top: 10),
-                                  child: Text("Subscription Title",style: TextStyle(color:Colors.black,fontSize:20,fontWeight: FontWeight.w600)),
-                                ),
-                                Container(
-                                  margin: EdgeInsets.all(10),
-                                  child: Text("Here will the subscription description"),
-                                ),
-                                Container(
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                      color: primaryColor,
-                                      border: Border.all(color: primaryColor),
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-                                      borderRadius: BorderRadius.circular(30)
-                                  ),
-                                  margin: EdgeInsets.all(10),
-                                  child: Text("\$20.00",style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w300),),
-                                )
-                              ],
-                            ),
-                          )
+                  if (snapshot.data!.size==0) {
+                    return Center(
+                      child: Column(
+                        children: [
+                          Image.asset("assets/images/empty.png",width: 150,height: 150,),
+                          Text('No Packages Added',)
+
+                        ],
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: InkWell(
-                          child: Container(
-                            margin: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: primaryColor),
+                    );
+                  }
 
-                                borderRadius: BorderRadius.circular(10)
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  margin: EdgeInsets.only(left: 10,top: 10),
-                                  child: Text("Subscription Title",style: TextStyle(color:Colors.black,fontSize:20,fontWeight: FontWeight.w600)),
-                                ),
-                                Container(
-                                  margin: EdgeInsets.all(10),
-                                  child: Text("Here will the subscription description"),
-                                ),
-                                Container(
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                      color: primaryColor,
-                                      border: Border.all(color: primaryColor),
+                  return ListView(
+                    children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                      Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+                      SubscriptionModel model=SubscriptionModel.fromMap(data,document.reference.id);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 5.0),
+                        child: InkWell(
+                          onTap: (){
 
-                                      borderRadius: BorderRadius.circular(30)
+                          },
+                            child: Container(
+                              margin: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: Border.all(color: primaryColor),
+
+                                  borderRadius: BorderRadius.circular(10)
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    margin: EdgeInsets.only(left: 10,top: 10),
+                                    child: Text(model.title,style: TextStyle(color:Colors.black,fontSize:20,fontWeight: FontWeight.w600)),
                                   ),
-                                  margin: EdgeInsets.all(10),
-                                  child: Text("\$20.00",style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w300),),
-                                )
-                              ],
-                            ),
-                          )
-                      ),
-                    ),
-                  ]
-              )
+                                  Container(
+                                    margin: EdgeInsets.all(10),
+                                    child: Text(model.description),
+                                  ),
+                                  Container(
+                                    height: 50,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        border: Border.all(color: primaryColor),
+
+                                        borderRadius: BorderRadius.circular(30)
+                                    ),
+                                    margin: EdgeInsets.all(10),
+                                    child: Text("$currency${model.price}",style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w300),),
+                                  )
+                                ],
+                              ),
+                            )
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
             ),
+
 
           ],
         ),

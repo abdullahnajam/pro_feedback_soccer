@@ -4,8 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pro_feedback_soccer/model/users.dart';
+import 'package:pro_feedback_soccer/navigation/student.dart';
+import 'package:pro_feedback_soccer/navigation/teacher.dart';
+import 'package:pro_feedback_soccer/provider/UserDataProvider.dart';
 import 'package:pro_feedback_soccer/register.dart';
 import 'package:pro_feedback_soccer/utils/constants.dart';
+import 'package:provider/provider.dart';
+import 'package:sn_progress_dialog/sn_progress_dialog.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -109,8 +115,72 @@ class _LoginState extends State<Login> {
                               GestureDetector(
                                 onTap: () async{
 
+                                  if(_formKey.currentState!.validate()){
+                                    final ProgressDialog pr = ProgressDialog(context: context);
+                                    pr.show(max: 100, msg: 'Logging In');
+                                    await FirebaseAuth.instance.signInWithEmailAndPassword(
+                                        email: _emailController.text.trim(),
+                                        password: _passwordController.text
+                                    ).then((value)async{
+                                      await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).get().then((DocumentSnapshot documentSnapshot) async{
+                                        if (documentSnapshot.exists) {
+                                          pr.close();
+                                          Map<String, dynamic> data = documentSnapshot.data()! as Map<String, dynamic>;
+                                          UserModel user=UserModel.fromMap(data,documentSnapshot.reference.id);
+                                          if(user.status=="Pending"){
+                                            FirebaseAuth.instance.signOut();
+                                            CoolAlert.show(
+                                              context: context,
+                                              type: CoolAlertType.info,
+                                              text: "Your account is pending for approval from admin",
+                                            );
+                                          }
+                                          else if(user.status=="Blocked"){
+                                            FirebaseAuth.instance.signOut();
+                                            CoolAlert.show(
+                                              context: context,
+                                              type: CoolAlertType.error,
+                                              text: "Your account is blocked by admin",
+                                            );
+                                          }
 
-                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => Login()));
+                                          else if(user.status=="Approved"){
+                                            String? token="";
+                                            FirebaseMessaging _fcm=FirebaseMessaging.instance;
+                                            token=await _fcm.getToken();
+                                            await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).update({
+                                              "token":token,
+                                            });
+                                            final provider = Provider.of<UserDataProvider>(context, listen: false);
+                                            provider.setUserData(user);
+                                            print("user type ${user.type}");
+                                            if(user.type=="Teacher")
+                                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => TeacherBar()));
+                                            else
+                                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => StudentBar()));
+
+                                          }
+                                        }
+                                        else{
+                                          pr.close();
+                                          CoolAlert.show(
+                                            context: context,
+                                            type: CoolAlertType.error,
+                                            text: "No User Data",
+                                          );
+                                        }
+                                      });
+                                    }).onError((error, stackTrace){
+                                      pr.close();
+                                      CoolAlert.show(
+                                        context: context,
+                                        type: CoolAlertType.error,
+                                        text: error.toString(),
+                                      );
+                                    });
+                                  }
+
+
 
 
 

@@ -1,6 +1,9 @@
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pro_feedback_soccer/model/notification_model.dart';
 import 'package:pro_feedback_soccer/utils/constants.dart';
 class Notifications extends StatefulWidget {
   @override
@@ -52,7 +55,7 @@ class _NotificationsState extends State<Notifications> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: ListView(
+        child: Column(
           children: [
             Container(
               decoration: BoxDecoration(
@@ -74,66 +77,95 @@ class _NotificationsState extends State<Notifications> {
             Container(
             margin: EdgeInsets.all(5)
           ),
-            Container(
-              child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: InkWell(
-                          child: Container(
-                            margin: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    spreadRadius: 1,
-                                    blurRadius: 1,
-                                    offset: Offset(0, 3), // changes position of shadow
-                                  ),
-                                ],
-                                borderRadius: BorderRadius.circular(10)
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: MediaQuery.of(context).size.width,
-                                  padding: EdgeInsets.all(10),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('notifications')
+                    .where("userId",isEqualTo: FirebaseAuth.instance.currentUser!.uid).snapshots(),
+                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasError) {
+                    return Text('Something went wrong');
+                  }
 
-                                  decoration: BoxDecoration(
-                                      color: primaryColor,
-                                      borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(10),
-                                          topRight: Radius.circular(10)
-                                      )
-                                  ),
-                                  alignment: Alignment.centerRight,
-                                  child: Text("10 hours ago",style: TextStyle(color:Colors.white,fontWeight: FontWeight.w600),),
-                                ),
-                                Container(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        margin: EdgeInsets.only(left: 10,top: 10),
-                                        child: Text("Notification Title",style: TextStyle(color:Colors.black,fontWeight: FontWeight.w600)),
-                                      ),
-                                      Container(
-                                        margin: EdgeInsets.all(10),
-                                        child: Text("Here will the notification description"),
-                                      )
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          )
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  if (snapshot.data!.size==0) {
+                    return Center(
+                      child: Column(
+                        children: [
+                          Image.asset("assets/images/empty.png",width: 150,height: 150,),
+                          Text('No Notifications',)
+
+                        ],
                       ),
-                    ),
-                  ]
-              )
+                    );
+                  }
+
+                  return ListView(
+                    children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                      Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+                      NotificationModel model=NotificationModel.fromMap(data,document.reference.id);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 5.0),
+                        child: InkWell(
+                            child: Container(
+                              margin: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.5),
+                                      spreadRadius: 1,
+                                      blurRadius: 1,
+                                      offset: Offset(0, 3), // changes position of shadow
+                                    ),
+                                  ],
+                                  borderRadius: BorderRadius.circular(10)
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: MediaQuery.of(context).size.width,
+                                    padding: EdgeInsets.all(10),
+
+                                    decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(10),
+                                            topRight: Radius.circular(10)
+                                        )
+                                    ),
+                                    alignment: Alignment.centerRight,
+                                    child: Text(timeAgoSinceDate(DateTime.fromMillisecondsSinceEpoch(model.date).toString()),style: TextStyle(color:Colors.white,fontWeight: FontWeight.w600),),
+                                  ),
+                                  Container(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          margin: EdgeInsets.only(left: 10,top: 10),
+                                          child: Text(model.title,style: TextStyle(color:Colors.black,fontWeight: FontWeight.w600)),
+                                        ),
+                                        Container(
+                                          margin: EdgeInsets.all(10),
+                                          child: Text(model.body),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              ),
+                            )
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
             ),
 
           ],

@@ -1,10 +1,12 @@
 
+import 'package:cool_alert/cool_alert.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../utils/constants.dart';
 
-Future<void> showRemarksDialog(BuildContext context,String remarks) async {
-  var _remarksController=TextEditingController();
+Future<void> showForgotPasswordDialog(BuildContext context) async {
+  var _emailController=TextEditingController();
   final _formKey = GlobalKey<FormState>();
   return showDialog<void>(
     context: context,
@@ -41,14 +43,32 @@ Future<void> showRemarksDialog(BuildContext context,String remarks) async {
                           alignment: Alignment.center,
                           child: Container(
                             margin: EdgeInsets.all(10),
-                            child: Text("Remarks",textAlign: TextAlign.center,style: TextStyle(fontWeight: FontWeight.w400,fontSize: 18)),
+                            child: Text("Forgot Password",textAlign: TextAlign.center,style: TextStyle(fontWeight: FontWeight.w400,fontSize: 18)),
                           ),
                         ),
                         Align(
                           alignment: Alignment.centerRight,
                           child: InkWell(
-                            onTap: (){
-                              Navigator.pop(context);
+                            onTap: ()async{
+                              await FirebaseAuth.instance.sendPasswordResetEmail(email: _emailController.text.trim()).then((value)async{
+                                CoolAlert.show(
+                                  context: context,
+                                  type: CoolAlertType.success,
+                                  text: "An email has been send for password reset",
+                                  onConfirmBtnTap: (){
+                                    Navigator.pop(context);
+                                    Navigator.pop(context);
+                                  }
+                                );
+
+                              }).onError((error, stackTrace){
+                                CoolAlert.show(
+                                  context: context,
+                                  type: CoolAlertType.error,
+                                  text: error.toString(),
+                                );
+                              });
+
 
                             },
                             child: Container(
@@ -66,7 +86,7 @@ Future<void> showRemarksDialog(BuildContext context,String remarks) async {
                         children: [
                           SizedBox(height: 10,),
                           TextFormField(
-                            controller: _remarksController,
+                            controller: _emailController,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter some text';
@@ -97,7 +117,7 @@ Future<void> showRemarksDialog(BuildContext context,String remarks) async {
                               ),
                               filled: true,
                               fillColor: Colors.grey[200],
-                              hintText: 'Enter Remarks',
+                              hintText: 'Enter Email',
                               // If  you are using latest version of flutter then lable text and hint text shown like this
                               // if you r using flutter less then 1.20.* then maybe this is not working properly
                               floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -111,7 +131,7 @@ Future<void> showRemarksDialog(BuildContext context,String remarks) async {
                           InkWell(
                             onTap: (){
                               if (_formKey.currentState!.validate()) {
-                                remarks=_remarksController.text;
+                               
                                 Navigator.pop(context);
                               }
                             },

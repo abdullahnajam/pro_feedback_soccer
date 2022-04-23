@@ -1,10 +1,17 @@
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cool_alert/cool_alert.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sn_progress_dialog/sn_progress_dialog.dart';
 
 import '../utils/constants.dart';
 
 Future<void> showAddPackageDialog(BuildContext context) async {
   final _formKey = GlobalKey<FormState>();
+  var _titleController=TextEditingController();
+  var _desController=TextEditingController();
+  var _priceController=TextEditingController();
   return showDialog<void>(
     context: context,
     barrierDismissible: true, // user must tap button!
@@ -71,6 +78,7 @@ Future<void> showAddPackageDialog(BuildContext context) async {
                               }
                               return null;
                             },
+                            controller: _titleController,
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.all(15),
                               focusedBorder: OutlineInputBorder(
@@ -103,6 +111,7 @@ Future<void> showAddPackageDialog(BuildContext context) async {
                           ),
                           SizedBox(height: 10,),
                           TextFormField(
+                            controller: _desController,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter some text';
@@ -141,12 +150,14 @@ Future<void> showAddPackageDialog(BuildContext context) async {
                           ),
                           SizedBox(height: 10,),
                           TextFormField(
+                            controller: _priceController,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter some text';
                               }
                               return null;
                             },
+                            keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.all(15),
                               focusedBorder: OutlineInputBorder(
@@ -183,8 +194,37 @@ Future<void> showAddPackageDialog(BuildContext context) async {
 
 
                           InkWell(
-                            onTap: (){
-                              Navigator.pop(context);
+                            onTap: ()async{
+                              if(_formKey.currentState!.validate()){
+                                final ProgressDialog pr = ProgressDialog(context: context);
+                                pr.show(max: 100, msg: 'Please Wait');
+                                await FirebaseFirestore.instance.collection('subscription').add({
+                                  "teacherId":FirebaseAuth.instance.currentUser!.uid,
+                                  "title":_titleController.text,
+                                  "description":_desController.text,
+                                  "price":_priceController.text,
+
+                                }).then((val){
+                                  pr.close();
+                                  CoolAlert.show(
+                                    context: context,
+                                    type: CoolAlertType.success,
+                                    text: "Package Successfully Added",
+                                    onConfirmBtnTap: (){
+                                      Navigator.pop(context);Navigator.pop(context);
+                                    }
+                                  );
+                                }).onError((error, stackTrace){
+                                  pr.close();CoolAlert.show(
+                                    context: context,
+                                    type: CoolAlertType.error,
+                                    text: error.toString(),
+                                  );
+
+                                });
+                              }
+
+
                             },
                             child: Container(
                               decoration: BoxDecoration(

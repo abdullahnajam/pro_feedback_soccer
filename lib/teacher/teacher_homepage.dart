@@ -1,6 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:pro_feedback_soccer/navigation/menu_drawer.dart';
+import 'package:pro_feedback_soccer/provider/UserDataProvider.dart';
 import 'package:pro_feedback_soccer/teacher/add_feedback.dart';
+import 'package:pro_feedback_soccer/utils/video_widget.dart';
+import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 
+import '../model/feedback_model.dart';
 import '../utils/constants.dart';
 
 class TeacherHomePage extends StatefulWidget {
@@ -11,14 +20,31 @@ class TeacherHomePage extends StatefulWidget {
 }
 
 class _TeacherHomePageState extends State<TeacherHomePage> {
+  final GlobalKey<ScaffoldState> _drawerKey = GlobalKey();
+  void _openDrawer () {
+    _drawerKey.currentState!.openDrawer();
+  }
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    FirebaseMessaging.onMessage.listen((RemoteMessage event) {
+    });
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      print('Message clicked!');
+    });
+  }
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<UserDataProvider>(context, listen: false);
     return Scaffold(
+      drawer: MenuDrawer(),
+      key: _drawerKey,
       backgroundColor: Colors.white,
       body: Column(
         children: [
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Container(
               decoration: BoxDecoration(
                 color: primaryColor,
@@ -33,92 +59,114 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   SizedBox(height: 50,),
                   Row(
                     children: [
-                    Container(
-                    height: 50,
-                    width: 50,
-                    decoration: BoxDecoration(
-                        image: DecorationImage(
-                            image: AssetImage("assets/images/avatar.jpg")
-                        ),
-                        borderRadius: BorderRadius.circular(10)
-                    ),
-
-                  ),
+                      InkWell(
+                        onTap: (){
+                          print("abc");
+                          _openDrawer();
+                        },
+                        child: Icon(Icons.menu,color: Colors.white,),
+                      ),
                       SizedBox(width: 10),
-                      Text("Hi, John Doe!",style: TextStyle(
+                      Container(
+                        height: 50,
+                        width: 50,
+                        decoration: BoxDecoration(
+                            image: DecorationImage(
+                                image: NetworkImage(provider.userData!.avatar),
+                                fit: BoxFit.cover
+                            ),
+                            borderRadius: BorderRadius.circular(10)
+                        ),
+
+                      ),
+                      SizedBox(width: 10),
+                      Text("Hi, ${provider.userData!.firstName} ${provider.userData!.lastName}!",style: TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
+                        fontSize: 23,
                         fontWeight: FontWeight.bold,
                       ),
                       ),
                     ],
                   ),
                   SizedBox(height: 20),
-                  Container(
-                    height: 50,
-                    padding: EdgeInsets.only(left: 10,right: 10),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(7)
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.search,color: Colors.grey,),
-                        SizedBox(width: 10),
-                        Text("Search",style: TextStyle(color: Colors.grey),)
-                      ],
-                    ),
-                  ),
+
                 ],
               ),
             ),
           ),
           Expanded(
-            flex: 7,
-            child: ListView.builder(
-              itemCount: 2,
-              itemBuilder: (BuildContext context, int index){
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Stack(
-                    children: [
-                      Container(
-                        height: 200,
-                        width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
+            flex: 8,
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('feedback')
+                  .where("teacherId",isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                  .where("status",isEqualTo: "Pending").snapshots(),
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasError) {
+                  return Text('Something went wrong');
+                }
 
-                            image: DecorationImage(
-                                image: AssetImage("assets/images/placeholder.png"),
-                              fit: BoxFit.cover
-                            ),
-                            borderRadius: BorderRadius.circular(10)
-                        ),
-                        alignment: Alignment.topRight,
-                      ),
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: InkWell(
-                            onTap: (){
-                              Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => AddFeedback()));
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-                            },
-                            child: CircleAvatar(
-                                radius: 20,
-                                backgroundColor: primaryColor,
-                                child:Icon(Icons.assignment_outlined,color: Colors.white,)
+                if (snapshot.data!.size==0) {
+                  return Center(
+                    child: Column(
+                      children: [
+                        Image.asset("assets/images/empty.png",width: 150,height: 150,),
+                        Text('No Videos Added',)
+
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView(
+                  children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                    Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+                    FeedbackModel model=FeedbackModel.fromMap(data,document.reference.id);
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 200,
+                            width: MediaQuery.of(context).size.width,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10)
                             ),
+                            alignment: Alignment.topRight,
+                            child: VideoWidget(false,model.videoUrl),
                           ),
-                        ),
-                      )
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: InkWell(
+                                onTap: (){
+                                  Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => AddFeedback(model)));
 
-                    ],
-                  ),
+                                },
+                                child: const CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: primaryColor,
+                                    child:Icon(Icons.assignment_outlined,color: Colors.white,)
+                                ),
+                              ),
+                            ),
+                          )
+
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),
-          )
+          ),
+
         ],
       ),
     );

@@ -1,12 +1,19 @@
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cool_alert/cool_alert.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:pro_feedback_soccer/model/users.dart';
 import 'package:pro_feedback_soccer/navigation/student.dart';
 import 'package:pro_feedback_soccer/navigation/teacher.dart';
+import 'package:pro_feedback_soccer/provider/UserDataProvider.dart';
 import 'package:pro_feedback_soccer/utils/constants.dart';
+import 'package:provider/provider.dart';
+import 'package:sn_progress_dialog/sn_progress_dialog.dart';
 
 import 'login.dart';
 
@@ -26,6 +33,83 @@ class _RegisterState extends State<Register> {
   var _lastNameController=TextEditingController();
   bool obscure=true;
   String? imgUrl;
+
+  File? imagefile;
+  String photoUrl="";
+  bool _progress = false ;
+  Future uploadImageToFirebase(BuildContext context) async {
+    final ProgressDialog pr = ProgressDialog(context: context);
+     pr.show(max: 100, msg: 'Please Wait');
+    firebase_storage.Reference firebaseStorageRef = firebase_storage.FirebaseStorage.instance.ref().child('uploads/${DateTime.now().millisecondsSinceEpoch}');
+    firebase_storage.UploadTask uploadTask = firebaseStorageRef.putFile(imagefile!);
+    firebase_storage.TaskSnapshot taskSnapshot = await uploadTask;
+    taskSnapshot.ref.getDownloadURL().then(
+          (value) {
+        photoUrl=value;
+        print("value $value");
+        setState(() {
+          _progress = true;
+          pr.close();
+        });
+
+      },
+    ).onError((error, stackTrace){
+      CoolAlert.show(
+        context: context,
+        type: CoolAlertType.error,
+        text: error.toString(),
+      );
+    });
+  }
+
+  void fileSet(File file){
+    setState(() {
+      if(file!=null){
+        imagefile=file;
+      }
+    });
+    uploadImageToFirebase(context);
+  }
+  _chooseGallery() async{
+    await ImagePicker().pickImage(source: ImageSource.gallery).then((value) => fileSet(File(value!.path)));
+
+  }
+  _choosecamera() async{
+    await ImagePicker().pickImage(source: ImageSource.camera).then((value) => fileSet(File(value!.path)));
+
+  }
+
+  void _showPicker(context) {
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext bc) {
+          return SafeArea(
+            child: Container(
+              child: new Wrap(
+                children: <Widget>[
+                  new ListTile(
+                      leading: new Icon(Icons.photo_library),
+                      title: new Text('Photo Library'),
+                      onTap: () {
+                        _chooseGallery();
+                        Navigator.of(context).pop();
+                      }),
+                  new ListTile(
+                    leading: new Icon(Icons.photo_camera),
+                    title: new Text('Camera'),
+                    onTap: () {
+                      _choosecamera();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,17 +176,40 @@ class _RegisterState extends State<Register> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Container(
-                                    height: 100,
-                                    width: 100,
-                                    decoration: BoxDecoration(
-                                      image: DecorationImage(
-                                          image: AssetImage("assets/images/avatar.jpg")
-                                      ),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    alignment: Alignment.center,
+                                  InkWell(
+                                    onTap: (){
+                                      _showPicker(context);
 
+                                    },
+                                    child: photoUrl==""?Center(
+                                      child: Container(
+                                        height: 100,
+                                        width: 100,
+                                        decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.grey,
+                                            border: Border.all(color: Colors.grey),
+                                            image: DecorationImage(
+                                              image: AssetImage('assets/images/avatar.jpg'),
+                                              fit: BoxFit.contain,
+                                            )
+                                        ),
+                                      ),
+                                    ):Center(
+                                      child: Container(
+                                        height: 100,
+                                        width: 100,
+                                        decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.grey,
+                                            border: Border.all(color: Colors.grey),
+                                            image: DecorationImage(
+                                              image: NetworkImage(photoUrl),
+                                              fit: BoxFit.cover,
+                                            )
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -249,6 +356,8 @@ class _RegisterState extends State<Register> {
                               GestureDetector(
                                 onTap: () async{
                                   if(_formKey.currentState!.validate()){
+                                    final ProgressDialog pr = ProgressDialog(context: context);
+                                    pr.show(max: 100, msg: 'Registering User');
                                     await FirebaseAuth.instance.createUserWithEmailAndPassword(
                                       email: _emailController.text.trim(),
                                       password: _passwordController.text,
@@ -263,21 +372,31 @@ class _RegisterState extends State<Register> {
                                         "lastName":_lastNameController.text,
                                         "email":_emailController.text,
                                         "password":_passwordController.text,
-                                        "avatar":imgUrl,
+                                        "avatar":photoUrl,
+                                        "status":dropdownValue=="Teacher"?"Pending":"Approved",
                                         "token":token,
-                                      }).then((dbval){
-                                        if(dropdownValue=="Teacher")
-                                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => TeacherBar()));
-                                        else
-                                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => StudentBar()));
+                                      }).then((val){
+                                        pr.close();
+                                        if(dropdownValue=="Teacher"){
+                                          FirebaseAuth.instance.signOut();
+                                          CoolAlert.show(
+                                            context: context,
+                                            type: CoolAlertType.success,
+                                            text: "You can access your account after admin approval",
+                                          );
+                                        }
+
+
                                       }).onError((error, stackTrace){
+                                        pr.close();
                                         CoolAlert.show(
                                           context: context,
                                           type: CoolAlertType.error,
                                           text: error.toString(),
                                         );
-                                      });;
+                                      });
                                     }).onError((error, stackTrace){
+                                      pr.close();
                                       CoolAlert.show(
                                         context: context,
                                         type: CoolAlertType.error,
