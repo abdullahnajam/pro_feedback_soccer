@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:pro_feedback_soccer/model/subscription_model.dart';
 import 'package:pro_feedback_soccer/model/users.dart';
@@ -9,6 +10,7 @@ import 'package:pro_feedback_soccer/student/packages.dart';
 import 'package:pro_feedback_soccer/teacher/add_feedback.dart';
 import 'package:provider/provider.dart';
 
+import '../model/feedback_model.dart';
 import '../navigation/menu_drawer.dart';
 import '../provider/UserDataProvider.dart';
 import '../utils/constants.dart';
@@ -69,6 +71,21 @@ class _StudentHomePageState extends State<StudentHomePage> {
                         child: Icon(Icons.menu,color: Colors.white,),
                       ),
                       SizedBox(width: 10),
+                    provider.userData!.avatar==""
+                        ?
+                    Container(
+                      height: 50,
+                      width: 50,
+                      decoration: BoxDecoration(
+                          image: DecorationImage(
+                              image: AssetImage("assets/images/avatar.jpg"),
+                              fit: BoxFit.cover
+                          ),
+                          borderRadius: BorderRadius.circular(10)
+                      ),
+
+                    )
+                    :
                     Container(
                     height: 50,
                     width: 50,
@@ -267,21 +284,21 @@ class _StudentHomePageState extends State<StudentHomePage> {
                                       ),
                                       alignment: Alignment.center,
                                       padding: EdgeInsets.all(10),
-                                      child: Image.asset("assets/images/pound.png",height: 20,color: primaryColor,),
+                                      child: Image.asset("assets/images/pound.png",height: 15,color: primaryColor,),
                                     ),
                                     SizedBox(width: 10,),
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Container(
-                                          child: Text("Price",style: TextStyle(fontSize: 14,color:Colors.black,fontWeight: FontWeight.w500)),
+                                          child: Text("Price",style: TextStyle(fontSize: 12,color:Colors.black,fontWeight: FontWeight.w500)),
                                         ),
                                         FutureBuilder(
                                             future: getPackageRate(model.userId),
                                             builder: (context, snapshot) {
                                               if (snapshot.connectionState == ConnectionState.waiting) {
                                                 return Container(
-                                                  child: Text("-",style: TextStyle(fontSize: 12,fontWeight: FontWeight.w300)),
+                                                  child: Text("-",style: TextStyle(fontSize: 10,fontWeight: FontWeight.w300)),
                                                 );
                                               }
                                               else {
@@ -317,21 +334,21 @@ class _StudentHomePageState extends State<StudentHomePage> {
                                       ),
                                       alignment: Alignment.center,
                                       padding: EdgeInsets.all(10),
-                                      child: Icon(Icons.assignment_outlined,color: primaryColor,),
+                                      child: Icon(Icons.assignment_outlined,color: primaryColor,size: 15,),
                                     ),
                                     SizedBox(width: 10,),
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Container(
-                                          child: Text("Feedbacks",style: TextStyle(fontSize: 14,color:Colors.black,fontWeight: FontWeight.w500)),
+                                          child: Text("Feedbacks",style: TextStyle(fontSize: 12,color:Colors.black,fontWeight: FontWeight.w500)),
                                         ),
                                         FutureBuilder(
                                             future: getFeedbackCount(model.userId),
                                             builder: (context, snapshot) {
                                               if (snapshot.connectionState == ConnectionState.waiting) {
                                                 return Container(
-                                                  child: Text("-",style: TextStyle(fontSize: 12,fontWeight: FontWeight.w300)),
+                                                  child: Text("-",style: TextStyle(fontSize: 10,fontWeight: FontWeight.w300)),
                                                 );
                                               }
                                               else {
@@ -346,6 +363,70 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
                                                   return Container(
                                                     child: Text("${snapshot.data!.toString()} Feedbacks",style: TextStyle(fontSize: 12,fontWeight: FontWeight.w300)),
+                                                  );
+                                                }
+                                              }
+                                            }
+                                        ),
+
+
+                                      ],
+                                    )
+                                  ],
+                                ),
+                                SizedBox(height:10),
+                                Row(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(10)
+                                      ),
+                                      alignment: Alignment.center,
+                                      padding: EdgeInsets.all(10),
+                                      child: Icon(Icons.star,color: primaryColor,size: 15,),
+                                    ),
+                                    SizedBox(width: 10,),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          child: Text("Rating",style: TextStyle(fontSize: 14,color:Colors.black,fontWeight: FontWeight.w500)),
+                                        ),
+                                        FutureBuilder<double>(
+                                            future: getRating(model.userId),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                                return Container(
+                                                  child: Text("-",style: TextStyle(fontSize: 12,fontWeight: FontWeight.w300)),
+                                                );
+                                              }
+                                              else {
+                                                if (snapshot.hasError) {
+                                                  print("r error ${snapshot.error}");
+                                                  return const Center(
+                                                    child: Text("Something went wrong"),
+                                                  );
+                                                }
+
+                                                else {
+
+                                                  return RatingBar(
+                                                    initialRating: snapshot.data!,
+                                                    direction: Axis.horizontal,
+                                                    allowHalfRating: true,
+                                                    itemCount: 5,
+                                                    ignoreGestures: true,
+                                                    itemSize: 15,
+                                                    ratingWidget: RatingWidget(
+                                                      full: Icon(Icons.star,color: primaryColor,),
+                                                      half: Icon(Icons.star_half,color: primaryColor),
+                                                      empty: Icon(Icons.star_border,color: primaryColor),
+                                                    ),
+                                                    itemPadding: EdgeInsets.all(0),
+                                                    onRatingUpdate: (rating) {
+                                                      print(rating);
+                                                    },
                                                   );
                                                 }
                                               }
@@ -405,5 +486,31 @@ class _StudentHomePageState extends State<StudentHomePage> {
       });
     });
     return count;
+  }
+  Future<double> getRating(String id)async{
+    List<double> rating=[];
+    await FirebaseFirestore.instance.collection('feedback')
+        .where("teacherId",isEqualTo: id)
+        .where("review_status",isEqualTo: "Rated").get().then((QuerySnapshot querySnapshot) {
+      querySnapshot.docs.forEach((doc) {
+        Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
+        FeedbackModel model=FeedbackModel.fromMap(data, doc.reference.id);
+        if(model.review_status=="Rated"){
+          rating.add(model.rating);
+
+        }
+
+      });
+    });
+    double count=0;
+    for(int i=0;i<rating.length;i++){
+      count+=rating[i];
+    }
+    print("rl = ${rating.length} ${count/rating.length}");
+    double total=0.0;
+    if(rating.length>0 || count>0)
+      total=count/rating.length;
+
+    return total;
   }
 }

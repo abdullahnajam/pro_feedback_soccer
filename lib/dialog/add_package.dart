@@ -3,12 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cool_alert/cool_alert.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:sn_progress_dialog/sn_progress_dialog.dart';
 
 import '../utils/constants.dart';
 
 Future<void> showAddPackageDialog(BuildContext context) async {
   final _formKey = GlobalKey<FormState>();
+  double rating=0;
   var _titleController=TextEditingController();
   var _desController=TextEditingController();
   var _priceController=TextEditingController();

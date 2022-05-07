@@ -361,9 +361,10 @@ class _AddFeedbackState extends State<AddFeedback> {
                       "feedbackDate":DateTime.now().millisecondsSinceEpoch,
                     }).then((value)async{
                       pr.close();
-                      await FirebaseFirestore.instance.collection('users').doc(widget.feedback.studentId).get().then((DocumentSnapshot documentSnapshot) {
+                      await FirebaseFirestore.instance.collection('users').doc(widget.feedback.studentId).get().then((DocumentSnapshot documentSnapshot) async{
                         if (documentSnapshot.exists) {
                           pr.close();
+
                           Map<String, dynamic> data = documentSnapshot.data()! as Map<String, dynamic>;
                           UserModel user=UserModel.fromMap(data,documentSnapshot.reference.id);
                           sendNotification(user.token, "Feedback Added", "Feedback has been added by ${provider.userData!.firstName} ${provider.userData!.lastName}", widget.feedback.studentId);

@@ -62,6 +62,9 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
           "status":"Pending",
           "datePosted":DateTime.now().millisecondsSinceEpoch,
           "feedbackDate":0,
+          "review":"no review",
+          "rating":0,
+          "review_status":"Not Rated",
         });
         await FirebaseFirestore.instance.collection('users').doc(teacherId).get().then((DocumentSnapshot documentSnapshot) {
           if (documentSnapshot.exists) {
@@ -141,6 +144,64 @@ class _SubscriptionPackagesState extends State<SubscriptionPackages> {
             Container(
             margin: EdgeInsets.all(5)
           ),
+
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  widget.teacher.avatar==""?Center(
+                    child: Container(
+                      height: 100,
+                      width: 100,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey,
+                          border: Border.all(color: Colors.grey),
+                          image: DecorationImage(
+                            image: AssetImage('assets/images/avatar.jpg'),
+                            fit: BoxFit.contain,
+                          )
+                      ),
+                    ),
+                  ):
+                  Center(
+                    child: Container(
+                      height: 80,
+                      width: 80,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey,
+                          border: Border.all(color: Colors.grey),
+                          image: DecorationImage(
+                            image: NetworkImage(widget.teacher.avatar),
+                            fit: BoxFit.cover,
+                          )
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text("${widget.teacher.firstName} ${widget.teacher.lastName}",style: TextStyle(fontSize: 20,fontWeight: FontWeight.w500),),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text("${widget.teacher.email}",style: TextStyle(fontSize: 15,fontWeight: FontWeight.w300),),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 10,bottom: 0),
+                  child: Text("Teacher's Bio",style: TextStyle(fontSize: 17,fontWeight: FontWeight.w400),),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text("${widget.teacher.bio}",style: TextStyle(fontSize: 15,fontWeight: FontWeight.w300),),
+                ),
+              ],
+            ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('subscription')

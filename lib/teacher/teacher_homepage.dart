@@ -67,6 +67,21 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                         child: Icon(Icons.menu,color: Colors.white,),
                       ),
                       SizedBox(width: 10),
+                      provider.userData!.avatar==""
+                          ?
+                      Container(
+                        height: 50,
+                        width: 50,
+                        decoration: BoxDecoration(
+                            image: DecorationImage(
+                                image: AssetImage("assets/images/avatar.jpg"),
+                                fit: BoxFit.cover
+                            ),
+                            borderRadius: BorderRadius.circular(10)
+                        ),
+
+                      )
+                          :
                       Container(
                         height: 50,
                         width: 50,

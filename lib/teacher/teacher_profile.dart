@@ -3,6 +3,8 @@ import 'package:cool_alert/cool_alert.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:pro_feedback_soccer/dialog/add_bio.dart';
 import 'package:pro_feedback_soccer/utils/video_widget.dart';
 import 'package:provider/provider.dart';
 
@@ -62,7 +64,6 @@ class _TeacherProfileState extends State<TeacherProfile> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
               decoration: BoxDecoration(
@@ -115,8 +116,8 @@ class _TeacherProfileState extends State<TeacherProfile> {
                   ):
                   Center(
                     child: Container(
-                      height: 100,
-                      width: 100,
+                      height: 80,
+                      width: 80,
                       decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.grey,
@@ -131,14 +132,43 @@ class _TeacherProfileState extends State<TeacherProfile> {
                 ],
               ),
             ),
-            Text("${provider.userData!.firstName} ${provider.userData!.lastName}",style: TextStyle(fontSize: 20,fontWeight: FontWeight.w500),),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text("${provider.userData!.firstName} ${provider.userData!.lastName}",style: TextStyle(fontSize: 20,fontWeight: FontWeight.w500),),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text("${provider.userData!.email}",style: TextStyle(fontSize: 15,fontWeight: FontWeight.w300),),
+                ),
+              ],
+            ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Text("${provider.userData!.email}",style: TextStyle(fontSize: 15,fontWeight: FontWeight.w300),),
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("BIO",style: TextStyle(fontSize: 20,fontWeight: FontWeight.w500),),
+                      InkWell(
+                        onTap: (){
+                          showBioDialog(context);
+                        },
+                        child: Icon(Icons.edit),
+                      )
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0,top: 5),
+                    child: Text(provider.userData!.bio,style: TextStyle(fontSize: 15,fontWeight: FontWeight.w300),),
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: DefaultTabController(
-                  length: 2,
+                  length: 3,
                   child:Column(
                     children: [
                       TabBar(
@@ -153,6 +183,7 @@ class _TeacherProfileState extends State<TeacherProfile> {
                         tabs: [
                           Tab(text: 'PENDING',),
                           Tab(text: 'SUBMITTED'),
+                          Tab(text: 'REVIEWS'),
                         ],
                       ),
 
@@ -408,6 +439,112 @@ class _TeacherProfileState extends State<TeacherProfile> {
                                                   ],
                                                 )
                                             )
+                                        ),
+                                      );
+                                    }).toList(),
+                                  );
+                                },
+                              ),
+                              StreamBuilder<QuerySnapshot>(
+                                stream: FirebaseFirestore.instance.collection('feedback')
+                                    .where("teacherId",isEqualTo: FirebaseAuth.instance.currentUser!.uid).snapshots(),
+                                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                  if (snapshot.hasError) {
+                                    return Text('Something went wrong');
+                                  }
+
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+
+                                  if (snapshot.data!.size==0) {
+                                    return Center(
+                                      child: Column(
+                                        children: [
+                                          Image.asset("assets/images/empty.png",width: 150,height: 150,),
+                                          Text('No Reviews',)
+
+                                        ],
+                                      ),
+                                    );
+                                  }
+
+                                  return ListView(
+                                    children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                                      Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+                                      FeedbackModel model=FeedbackModel.fromMap(data,document.reference.id);
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 5.0),
+                                        child: FutureBuilder(
+                                            future: FirebaseFirestore.instance.collection('users').doc(model.studentId).get(),
+                                            builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+                                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                                return Center(
+                                                  child: CircularProgressIndicator(),
+                                                );
+                                              }
+                                              else {
+                                                if (snapshot.hasError) {
+                                                  print("error ${snapshot.error}");
+                                                  return const Center(
+                                                    child: Text("Something went wrong"),
+                                                  );
+                                                }
+
+                                                else {
+                                                  Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
+
+                                                  return ListTile(
+                                                    leading: data['avatar']==""?
+                                                    Image.asset("assets/images/avatar.jpg")
+                                                    :
+                                                    Image.network(data['avatar']),
+                                                    title: Text("${data['firstName']} ${data['lastName']}"),
+                                                    subtitle: RatingBar(
+                                                      initialRating: model.rating,
+                                                      direction: Axis.horizontal,
+                                                      allowHalfRating: true,
+                                                      itemCount: 5,
+                                                      ignoreGestures: true,
+                                                      itemSize: 15,
+                                                      ratingWidget: RatingWidget(
+                                                        full: Icon(Icons.star,color: primaryColor,),
+                                                        half: Icon(Icons.star_half,color: primaryColor),
+                                                        empty: Icon(Icons.star_border,color: primaryColor),
+                                                      ),
+                                                      itemPadding: EdgeInsets.all(0),
+                                                      onRatingUpdate: (rating) {
+                                                        print(rating);
+                                                      },
+                                                    ),
+                                                  );
+                                                  return Row(
+                                                    children: [
+                                                      Container(
+                                                        margin: EdgeInsets.only(left:10),
+                                                        height: 30,
+                                                        width: 30,
+                                                        decoration: BoxDecoration(
+                                                            image: DecorationImage(
+                                                                image: NetworkImage(data['avatar']),
+                                                                fit: BoxFit.cover
+                                                            ),
+                                                            borderRadius: BorderRadius.circular(10)
+                                                        ),
+
+                                                      ),
+                                                      Container(
+                                                        margin: EdgeInsets.only(left:10),
+                                                        child: Text("${data['firstName']} ${data['lastName']}"),
+                                                      ),
+
+                                                    ],
+                                                  );
+                                                }
+                                              }
+                                            }
                                         ),
                                       );
                                     }).toList(),
